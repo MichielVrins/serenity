@@ -17,6 +17,7 @@ set(SOURCES
     CookieJar.cpp
     DownloadWidget.cpp
     EditBookmarkGML.h
+    ElementSizePreviewWidget.cpp
     History.cpp
     IconBag.cpp
     InspectorWidget.cpp

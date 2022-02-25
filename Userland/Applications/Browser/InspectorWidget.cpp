@@ -7,6 +7,7 @@
  */
 
 #include "InspectorWidget.h"
+#include "ElementSizePreviewWidget.h"
 #include <LibGUI/BoxLayout.h>
 #include <LibGUI/Splitter.h>
 #include <LibGUI/TabWidget.h>
@@ -52,6 +53,7 @@ void InspectorWidget::set_inspected_node(GUI::ModelIndex const index)
     if (maybe_inspected_node_properties.has_value()) {
         auto inspected_node_properties = maybe_inspected_node_properties.value();
         load_style_json(inspected_node_properties.specified_values_json, inspected_node_properties.computed_values_json, inspected_node_properties.custom_properties_json);
+        update_node_box_model(inspected_node_properties.node_box_sizing_json);
     } else {
         clear_style_json();
     }
@@ -93,6 +95,11 @@ InspectorWidget::InspectorWidget()
     custom_properties_table_container.layout()->set_margins({ 4, 4, 4, 4 });
     m_custom_properties_table_view = custom_properties_table_container.add<GUI::TableView>();
 
+    auto& element_size = bottom_tab_widget.add_tab<GUI::Widget>("Element");
+    element_size.set_layout<GUI::VerticalBoxLayout>();
+    element_size.layout()->set_margins({ 4, 4, 4, 4 });
+    m_element_size_view = element_size.add<ElementSizePreviewWidget>();
+
     m_dom_tree_view->set_focus(true);
 }
 
@@ -129,7 +136,7 @@ void InspectorWidget::clear_dom_json()
     clear_style_json();
 }
 
-void InspectorWidget::set_dom_node_properties_json(i32 node_id, String specified_values_json, String computed_values_json, String custom_properties_json)
+void InspectorWidget::set_dom_node_properties_json(i32 node_id, String specified_values_json, String computed_values_json, String custom_properties_json, String node_box_sizing_json)
 {
     if (node_id != m_inspected_node_id) {
         dbgln("Got data for the wrong node id! Wanted {}, got {}", m_inspected_node_id, node_id);
@@ -151,6 +158,36 @@ void InspectorWidget::load_style_json(String specified_values_json, String compu
     m_custom_properties_table_view->set_model(Web::StylePropertiesModel::create(m_inspected_node_custom_properties_json.value().view()));
 }
 
+void InspectorWidget::update_node_box_model(Optional<String> node_box_sizing_json)
+{
+    if (!node_box_sizing_json.has_value()) {
+        return;
+    }
+    auto json_or_error = JsonValue::from_string(node_box_sizing_json.value());
+    if (json_or_error.is_error() || !json_or_error.value().is_object()) {
+        return;
+    }
+    auto json_value = json_or_error.release_value();
+    const auto& json_object = json_value.as_object();
+
+    m_node_box_sizing.margin.top = static_cast<float>(json_object.get("margin_top").to_u32());
+    m_node_box_sizing.margin.right = static_cast<float>(json_object.get("margin_right").to_u32());
+    m_node_box_sizing.margin.bottom = static_cast<float>(json_object.get("margin_bottom").to_u32());
+    m_node_box_sizing.margin.left = static_cast<float>(json_object.get("margin_left").to_u32());
+    m_node_box_sizing.padding.top = static_cast<float>(json_object.get("padding_top").to_u32());
+    m_node_box_sizing.padding.right = static_cast<float>(json_object.get("padding_right").to_u32());
+    m_node_box_sizing.padding.bottom = static_cast<float>(json_object.get("padding_bottom").to_u32());
+    m_node_box_sizing.padding.left = static_cast<float>(json_object.get("padding_left").to_u32());
+    m_node_box_sizing.border.top = static_cast<float>(json_object.get("border_top").to_u32());
+    m_node_box_sizing.border.right = static_cast<float>(json_object.get("border_right").to_u32());
+    m_node_box_sizing.border.bottom = static_cast<float>(json_object.get("border_bottom").to_u32());
+    m_node_box_sizing.border.left = static_cast<float>(json_object.get("border_left").to_u32());
+
+    m_element_size_view->set_content_width(static_cast<float>(json_object.get("content_width").to_u32()));
+    m_element_size_view->set_content_height(static_cast<float>(json_object.get("content_height").to_u32()));
+    m_element_size_view->set_box_model(m_node_box_sizing);
+}
+
 void InspectorWidget::clear_style_json()
 {
     m_inspected_node_specified_values_json.clear();
@@ -161,6 +198,10 @@ void InspectorWidget::clear_style_json()
 
     m_inspected_node_custom_properties_json.clear();
     m_custom_properties_table_view->set_model(nullptr);
+
+    m_element_size_view->set_box_model({});
+    m_element_size_view->set_content_width(0);
+    m_element_size_view->set_content_height(0);
 }
 
 }

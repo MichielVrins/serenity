@@ -258,7 +258,7 @@ Messages::WebContentServer::InspectDomNodeResponse ClientConnection::inspect_dom
 
     Web::DOM::Node* node = Web::DOM::Node::from_id(node_id);
     if (!node) {
-        return { false, "", "", "" };
+        return { false, "", "", "", "" };
     }
 
     node->document().set_inspected_node(node);
@@ -266,7 +266,7 @@ Messages::WebContentServer::InspectDomNodeResponse ClientConnection::inspect_dom
     if (node->is_element()) {
         auto& element = verify_cast<Web::DOM::Element>(*node);
         if (!element.specified_css_values())
-            return { false, "", "", "" };
+            return { false, "", "", "", "" };
 
         auto serialize_json = [](Web::CSS::StyleProperties const& properties) -> String {
             StringBuilder builder;
@@ -301,14 +301,41 @@ Messages::WebContentServer::InspectDomNodeResponse ClientConnection::inspect_dom
 
             return builder.to_string();
         };
+        auto serialize_node_box_sizing = [](Web::DOM::Element const& element) -> String {
+            if (!element.layout_node()) {
+                return "";
+            }
+            auto box_model = static_cast<Web::Layout::Box const&>(*element.layout_node()).box_model();
+            StringBuilder builder;
+            JsonObjectSerializer serializer(builder);
 
+            //FIXME: These values should actually be floats.
+            serializer.add("padding_top", static_cast<u32>(box_model.padding.top));
+            serializer.add("padding_right", static_cast<u32>(box_model.padding.right));
+            serializer.add("padding_bottom", static_cast<u32>(box_model.padding.bottom));
+            serializer.add("padding_left", static_cast<u32>(box_model.padding.left));
+            serializer.add("margin_top", static_cast<u32>(box_model.margin.top));
+            serializer.add("margin_right", static_cast<u32>(box_model.margin.top));
+            serializer.add("margin_bottom", static_cast<u32>(box_model.margin.top));
+            serializer.add("margin_left", static_cast<u32>(box_model.margin.top));
+            serializer.add("border_top", static_cast<u32>(box_model.border.top));
+            serializer.add("border_right", static_cast<u32>(box_model.border.right));
+            serializer.add("border_bottom", static_cast<u32>(box_model.border.bottom));
+            serializer.add("border_left", static_cast<u32>(box_model.border.left));
+            serializer.add("content_width", static_cast<u32>(static_cast<Web::Layout::Box const&>(*element.layout_node()).content_width()));
+            serializer.add("content_height", static_cast<u32>(static_cast<Web::Layout::Box const&>(*element.layout_node()).content_height()));
+
+            serializer.finish();
+            return builder.to_string();
+        };
         String specified_values_json = serialize_json(*element.specified_css_values());
         String computed_values_json = serialize_json(element.computed_style());
         String custom_properties_json = serialize_custom_properties_json(element);
-        return { true, specified_values_json, computed_values_json, custom_properties_json };
+        String node_box_sizing_json_json = serialize_node_box_sizing(element);
+        return { true, specified_values_json, computed_values_json, custom_properties_json, node_box_sizing_json };
     }
 
-    return { false, "", "", "" };
+    return { false, "", "", "", "" };
 }
 
 Messages::WebContentServer::GetHoveredNodeIdResponse ClientConnection::get_hovered_node_id()
