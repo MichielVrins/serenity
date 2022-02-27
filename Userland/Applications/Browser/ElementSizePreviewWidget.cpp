@@ -15,19 +15,51 @@ void ElementSizePreviewWidget::paint_event(GUI::PaintEvent& event)
     GUI::Painter painter(*this);
     painter.fill_rect(frame_inner_rect(), Color::White);
 
-    // outer rect
-    Gfx::IntRect margin_rect {
-        10,
-        10,
-        250,
-        110
+    int outer_margin = 10;
+    int text_width_padding = 4;
+    int inner_content_width = 100;
+    int inner_content_height = 15;
+
+
+    auto format_size_text = [&](float size) {
+        return String::formatted("{:.4f}", size);
     };
+
+    auto compute_text_string_width = [&](float size) {
+        return font().width(format_size_text(size)) + 2 * text_width_padding;
+    };
+
+    int margin_left_width = max(25, compute_text_string_width(m_node_box_sizing.margin.left));
+    int margin_right_width = max(25, compute_text_string_width(m_node_box_sizing.margin.right));
+
+    int border_left_width = max(25, compute_text_string_width(m_node_box_sizing.border.left));
+    int border_right_width = max(25, compute_text_string_width(m_node_box_sizing.border.right));
+
+    int padding_left_width = max(25, compute_text_string_width(m_node_box_sizing.padding.left));
+    int padding_right_width = max(25, compute_text_string_width(m_node_box_sizing.padding.right));
+
+    // outer rect
+    auto margin_rect = to_widget_rect({
+        outer_margin,
+        outer_margin,
+        inner_content_width + border_left_width + border_right_width + margin_left_width + margin_right_width + padding_left_width + padding_right_width,
+        inner_content_height + 15 * 6
+    });
+
+    Gfx::IntSize content_size {margin_rect.width() + 2 * outer_margin, margin_rect.height() + 2 * outer_margin};
+    set_content_size(content_size);
     auto border_rect = margin_rect;
-    border_rect.shrink(50, 30);
+    border_rect.take_from_left(margin_left_width);
+    border_rect.take_from_right(margin_right_width);
+    border_rect.shrink({0, 30});
     auto padding_rect = border_rect;
-    padding_rect.shrink(50, 30);
+    padding_rect.take_from_left(border_left_width);
+    padding_rect.take_from_right(border_right_width);
+    padding_rect.shrink({0, 30});
     auto content_rect = padding_rect;
-    content_rect.shrink(50, 30);
+    content_rect.take_from_left(padding_left_width);
+    content_rect.take_from_right(padding_right_width);
+    content_rect.shrink({0, 30});
 
     auto draw_borders = [&](Gfx::IntRect rect, Color color) {
         painter.fill_rect(rect.take_from_top(1), color);
@@ -37,10 +69,10 @@ void ElementSizePreviewWidget::paint_event(GUI::PaintEvent& event)
     };
 
     auto draw_size_texts = [&](Gfx::IntRect rect, Color color, Web::Layout::PixelBox box) {
-        painter.draw_text(rect, String::formatted("{}", box.top), font(), Gfx::TextAlignment::TopCenter, color);
-        painter.draw_text(rect, String::formatted("{}", box.right), font(), Gfx::TextAlignment::CenterRight, color);
-        painter.draw_text(rect, String::formatted("{}", box.bottom), font(), Gfx::TextAlignment::BottomCenter, color);
-        painter.draw_text(rect, String::formatted("{}", box.left), font(), Gfx::TextAlignment::CenterLeft, color);
+        painter.draw_text(rect, format_size_text(box.top), font(), Gfx::TextAlignment::TopCenter, color);
+        painter.draw_text(rect, format_size_text(box.right), font(), Gfx::TextAlignment::CenterRight, color);
+        painter.draw_text(rect, format_size_text(box.bottom), font(), Gfx::TextAlignment::BottomCenter, color);
+        painter.draw_text(rect, format_size_text(box.left), font(), Gfx::TextAlignment::CenterLeft, color);
     };
 
     // paint margin box

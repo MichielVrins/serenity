@@ -442,7 +442,7 @@ Optional<OutOfProcessWebView::DOMNodeProperties> OutOfProcessWebView::inspect_do
         .specified_values_json = response.specified_style(),
         .computed_values_json = response.computed_style(),
         .custom_properties_json = response.custom_properties(),
-        .node_box_sizing = response.node_box_sizing()
+        .node_box_sizing_json = response.node_box_sizing()
     };
 }
 
