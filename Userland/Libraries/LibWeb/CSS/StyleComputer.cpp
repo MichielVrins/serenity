@@ -67,9 +67,12 @@ void StyleComputer::for_each_stylesheet(CascadeOrigin cascade_origin, Callback c
     }
 }
 
-Vector<MatchingRule> StyleComputer::collect_matching_rules(DOM::Element const& element, CascadeOrigin cascade_origin, Optional<CSS::Selector::PseudoElement> pseudo_element) const
+Vector<MatchingRule> StyleComputer::collect_matching_rules(DOM::Element& element, CascadeOrigin cascade_origin, Optional<CSS::Selector::PseudoElement> pseudo_element) const
 {
     if (cascade_origin == CascadeOrigin::Author) {
+
+        if (element.matching_rules_valid())
+            return element.matching_rules();
         Vector<MatchingRule> rules_to_run;
         if (pseudo_element.has_value()) {
             if (auto it = m_rule_cache->rules_by_pseudo_element.find(pseudo_element.value()); it != m_rule_cache->rules_by_pseudo_element.end())
@@ -95,6 +98,7 @@ Vector<MatchingRule> StyleComputer::collect_matching_rules(DOM::Element const& e
             if (SelectorEngine::matches(selector, element, pseudo_element))
                 matching_rules.append(rule_to_run);
         }
+        element.set_matching_rules(matching_rules);
         return matching_rules;
     }
 
@@ -115,7 +119,6 @@ Vector<MatchingRule> StyleComputer::collect_matching_rules(DOM::Element const& e
         });
         ++style_sheet_index;
     });
-
     return matching_rules;
 }
 

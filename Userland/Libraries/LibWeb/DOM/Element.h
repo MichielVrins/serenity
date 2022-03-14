@@ -9,6 +9,7 @@
 #include <AK/FlyString.h>
 #include <AK/String.h>
 #include <LibWeb/CSS/CSSStyleDeclaration.h>
+#include <LibWeb/CSS/CSSStyleRule.h>
 #include <LibWeb/CSS/StyleComputer.h>
 #include <LibWeb/DOM/Attribute.h>
 #include <LibWeb/DOM/ChildNode.h>
@@ -22,6 +23,8 @@
 #include <LibWeb/HTML/TagNames.h>
 #include <LibWeb/Layout/Node.h>
 #include <LibWeb/Layout/TreeBuilder.h>
+
+#include <utility>
 
 namespace Web::DOM {
 
@@ -141,6 +144,14 @@ public:
     void clear_pseudo_element_nodes(Badge<Layout::TreeBuilder>);
     void serialize_pseudo_elements_as_json(JsonArraySerializer<StringBuilder>& children_array) const;
 
+    void set_matching_rules(Vector<Web::CSS::MatchingRule> matching_rules) {
+        m_matching_rules = move(matching_rules);
+        m_matching_rules_valid = true;
+    };
+    void invalidate_matching_rules();
+    bool matching_rules_valid() const { return m_matching_rules_valid; };
+    Vector<Web::CSS::MatchingRule> matching_rules() const { return m_matching_rules; };
+
 protected:
     virtual void children_changed() override;
 
@@ -162,6 +173,9 @@ private:
     RefPtr<ShadowRoot> m_shadow_root;
 
     Array<RefPtr<Layout::Node>, CSS::Selector::PseudoElementCount> m_pseudo_element_nodes;
+
+    Vector<Web::CSS::MatchingRule> m_matching_rules;
+    bool m_matching_rules_valid = false;
 };
 
 template<>

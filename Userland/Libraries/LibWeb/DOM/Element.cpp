@@ -256,6 +256,7 @@ void Element::parse_attribute(const FlyString& name, const String& value)
         }
         if (m_class_list)
             m_class_list->associated_attribute_changed(value);
+        invalidate_matching_rules();
     } else if (name == HTML::AttributeNames::style) {
         auto parsed_style = parse_css_declaration(CSS::ParsingContext(document()), value);
         if (!parsed_style.is_null()) {
@@ -568,6 +569,15 @@ void Element::serialize_pseudo_elements_as_json(JsonArraySerializer<StringBuilde
         MUST(object.add("pseudo-element", i));
         MUST(object.finish());
     }
+}
+
+void Element::invalidate_matching_rules() {
+    if (!m_matching_rules_valid)
+        return;
+    m_matching_rules_valid = false;
+    for_each_child_of_type<Element>([&](Element& element) {
+        element.invalidate_matching_rules();
+    });
 }
 
 }

@@ -65,7 +65,7 @@ public:
         Transition,
     };
 
-    Vector<MatchingRule> collect_matching_rules(DOM::Element const&, CascadeOrigin, Optional<CSS::Selector::PseudoElement>) const;
+    Vector<MatchingRule> collect_matching_rules(DOM::Element&, CascadeOrigin, Optional<CSS::Selector::PseudoElement>) const;
 
     void invalidate_rule_cache();
 

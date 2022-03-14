@@ -692,6 +692,22 @@ static Node* find_common_ancestor(Node* a, Node* b)
     return nullptr;
 }
 
+static Element* find_common_ancestor_element(Node* a, Node* b)
+{
+    auto* node = find_common_ancestor(a, b);
+    if (!node)
+        return nullptr;
+
+    if (node->is_element())
+        return verify_cast<Element>(node);
+
+    if (auto *parent_element = node->first_ancestor_of_type<Element>()) {
+        return parent_element;
+    }
+
+    return nullptr;
+}
+
 void Document::set_hovered_node(Node* node)
 {
     if (m_hovered_node == node)
@@ -704,6 +720,10 @@ void Document::set_hovered_node(Node* node)
         common_ancestor->invalidate_style();
     else
         invalidate_style();
+
+    if (auto *common_ancestor = find_common_ancestor_element(old_hovered_node, m_hovered_node)) {
+        common_ancestor->invalidate_matching_rules();
+    }
 }
 
 NonnullRefPtr<HTMLCollection> Document::get_elements_by_name(String const& name)
@@ -1384,6 +1404,10 @@ void Document::evaluate_media_queries_and_report_changes()
     if (any_media_queries_changed_match_state) {
         style_computer().invalidate_rule_cache();
         invalidate_style();
+        for_each_in_inclusive_subtree_of_type<Element>([&](auto& node) {
+            node.invalidate_matching_rules();
+            return IterationDecision::Continue;
+        });
     }
 }
 
